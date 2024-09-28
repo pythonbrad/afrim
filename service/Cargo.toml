@@ -26,13 +26,13 @@ serde = ["dep:serde", "afrim-translator/serde"]
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
-enigo = "0.1.3"
 afrim-config = { version = "0.4.5", path = "../config", default-features = false }
 afrim-preprocessor = { version = "0.6.1", path = "../engine/preprocessor", default-features = false }
 afrim-translator = { version = "0.2.1", path = "../engine/translator", default-features = false }
 rdev = "0.5.3"
 anyhow = "1.0.81"
 serde = { version = "1.0.197", optional = true }
+enigo = "0.2.1"
 
 [dev-dependencies]
 afrish = { version = "0.1.0", default-features = false, git = "https://github.com/fodydev/afrish", rev = "e8c4fa2" }

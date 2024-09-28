@@ -5,7 +5,7 @@ pub use afrim_config::Config;
 use afrim_preprocessor::{utils, Command as EventCmd, Preprocessor};
 use afrim_translator::Translator;
 use anyhow::{Context, Result};
-use enigo::{Enigo, Key, KeyboardControllable};
+use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 use frontend::{Command as GUICmd, Frontend};
 use rdev::{self, EventType, Key as E_Key};
 use std::{rc::Rc, sync::mpsc, thread};
@@ -38,7 +38,7 @@ pub fn run(
             )
         })
         .unwrap_or((32, false, 10));
-    let mut keyboard = Enigo::new();
+    let mut keyboard = Enigo::new(&Settings::default())?;
     let mut preprocessor = Preprocessor::new(Rc::new(memory), buffer_size);
     #[cfg(not(feature = "rhai"))]
     let translator = Translator::new(config.extract_translation(), auto_commit);
@@ -166,13 +166,13 @@ pub fn run(
         while let Some(command) = preprocessor.pop_queue() {
             match command {
                 EventCmd::CommitText(text) => {
-                    keyboard.key_sequence(&text);
+                    keyboard.text(&text)?;
                 }
                 EventCmd::CleanDelete => {
-                    keyboard.key_up(Key::Backspace);
+                    keyboard.key(Key::Backspace, Direction::Press)?;
                 }
                 EventCmd::Delete => {
-                    keyboard.key_click(Key::Backspace);
+                    keyboard.key(Key::Backspace, Direction::Click)?;
                 }
                 EventCmd::Pause => {
                     rdev::simulate(&EventType::KeyPress(E_Key::Pause)).unwrap();
