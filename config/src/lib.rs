@@ -178,6 +178,7 @@ pub struct Config {
 /// auto_capitalize = false
 /// page_size = 10
 /// auto_commit = true
+/// suggestions = true
 /// # "#.to_owned());
 /// #
 /// # // Loads the config file.
@@ -193,6 +194,8 @@ pub struct CoreConfig {
     pub page_size: Option<usize>,
     /// Whether the predicate should be automatically committed.
     pub auto_commit: Option<bool>,
+    /// Whether we should show suggestions automatically
+    pub suggestions: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -506,6 +509,7 @@ mod tests {
                 assert_eq!(core.buffer_size.unwrap(), 64);
                 assert!(!core.auto_capitalize.unwrap());
                 assert!(!core.auto_commit.unwrap());
+                assert!(!core.suggestions.unwrap());
                 assert_eq!(core.page_size.unwrap(), 10);
                 true
             }),

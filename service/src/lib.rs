@@ -27,7 +27,7 @@ pub fn run(
             .map(|(key, value)| vec![key.as_str(), value.as_str()])
             .collect(),
     );
-    let (buffer_size, auto_commit, page_size) = config
+    let (buffer_size, auto_commit, page_size, suggestions) = config
         .core
         .as_ref()
         .map(|core| {
@@ -35,9 +35,10 @@ pub fn run(
                 core.buffer_size.unwrap_or(32),
                 core.auto_commit.unwrap_or(false),
                 core.page_size.unwrap_or(10),
+                core.suggestions.unwrap_or(false),
             )
         })
-        .unwrap_or((32, false, 10));
+        .unwrap_or((32, false, 10, false));
     let mut keyboard = Enigo::new(&Default::default()).unwrap();
     let mut preprocessor = Preprocessor::new(Rc::new(memory), buffer_size);
     #[cfg(not(feature = "rhai"))]
@@ -150,7 +151,9 @@ pub fn run(
                             } else if auto_commit && predicate.can_commit {
                                 preprocessor.commit(predicate.texts[0].to_owned());
                             } else {
-                                frontend_tx1.send(GUICmd::Predicate(predicate))?;
+                                if suggestions {
+                                    frontend_tx1.send(GUICmd::Predicate(predicate))?;
+                                }
                             }
 
                             Ok(())
