@@ -10,11 +10,6 @@ pub enum Command {
     Pause,
     /// Request to resume the listener.
     Resume,
-    /// Request to delete the last character.
-    Delete,
-    /// Request to clean the previous delete operation.
-    ///
-    /// Useful by example in case that a key has been pressed, and we want to ensure
-    /// that it has been released before continuing.
-    CleanDelete,
+    /// Request to delete the last insertion.
+    Delete(String),
 }
