@@ -91,6 +91,8 @@ Try it in the console
   - [afrim-wish](https://github.com/fodydev/afrim-wish): Frontend for desktop environment.
   - [afrim-web](https://github.com/fodydev/afrim-web): Frontend for web environment.
   - [afrim-keyboard](https://github.com/fodydev/afrim-keyboard): Frontend for android environment.
+  - [ibus-afrim](https://github.com/fodydev/ibus-afrim): Frontend for linux desktop environment.
+  - [afrim-fcitx](https://github.com/fodydev/afrim-fcitx): Frontend for desktop, web and mobile environemnt through our fcitx5 extension.
 
   🧑🏿‍🤝‍🧑🏿 Community:
   - Feel free to propose your own.
