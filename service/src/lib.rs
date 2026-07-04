@@ -17,6 +17,7 @@ pub fn run(
 ) -> Result<()> {
     // State.
     let mut is_ctrl_released = true;
+    let mut is_backspace_pressed = false;
     let mut idle = false;
 
     // Configuration of the afrim.
@@ -103,6 +104,9 @@ pub fn run(
             EventType::KeyRelease(E_Key::ControlLeft | E_Key::ControlRight) => {
                 is_ctrl_released = true;
             }
+            EventType::KeyRelease(E_Key::Backspace) => {
+                is_backspace_pressed = false;
+            }
             _ if idle => (),
             // Handling of special functions.
             EventType::KeyRelease(E_Key::ShiftRight) if !is_ctrl_released => {
@@ -134,7 +138,10 @@ pub fn run(
             }
             // Process events.
             _ => {
-                let (changed, _committed) = preprocessor.process(convert::from_event(event));
+                if event.event_type == EventType::KeyPress(E_Key::Backspace) {
+                    is_backspace_pressed = true;
+                }
+                let (changed, _committed) = preprocessor.process(convert::from_event(&event));
 
                 if changed {
                     let input = preprocessor.get_input();
@@ -168,11 +175,16 @@ pub fn run(
                 EventCmd::CommitText(text) => {
                     keyboard.text(&text).unwrap();
                 }
-                EventCmd::CleanDelete => {
-                    keyboard.key(Key::Backspace, Direction::Release).unwrap();
-                }
-                EventCmd::Delete => {
-                    keyboard.key(Key::Backspace, Direction::Click).unwrap();
+                EventCmd::Delete(text) => {
+                    let mut step = text.chars().count();
+                    // Prevent an additional backspace.
+                    if is_backspace_pressed {
+                        keyboard.key(Key::Backspace, Direction::Release).unwrap();
+                        is_backspace_pressed = false;
+                        step -= 1;
+                    }
+
+                    (0..step).for_each(|_| keyboard.key(Key::Backspace, Direction::Click).unwrap());
                 }
                 EventCmd::Pause => {
                     rdev::simulate(&EventType::KeyPress(E_Key::Pause)).unwrap();

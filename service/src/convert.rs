@@ -7,9 +7,10 @@ use afrim_preprocessor::{Key, KeyState, KeyboardEvent, NamedKey::*};
 use rdev::{self};
 
 /// Converts an rdev::Event into a KeyboardEvent.
-pub fn from_event(event: rdev::Event) -> KeyboardEvent {
+pub fn from_event(event: &rdev::Event) -> KeyboardEvent {
     let key_char = event
         .name
+        .as_ref()
         .and_then(|c| c.chars().next())
         .filter(|c| c.is_alphanumeric() || c.is_ascii_punctuation())
         .map(|c| Key::Character(c.to_string()));
