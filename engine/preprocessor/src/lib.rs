@@ -39,8 +39,8 @@
 //! #[cfg(not(feature = "inhibit"))]
 //! let mut expecteds = VecDeque::from(vec![
 //!     Command::Pause,
-//!     Command::Delete,
-//!     Command::Delete,
+//!     Command::Delete("c".to_string()),
+//!     Command::Delete("c".to_string()),
 //!     Command::CommitText("ç".to_owned()),
 //!     Command::Resume,
 //! ]);
@@ -49,10 +49,10 @@
 //! #[cfg(feature = "inhibit")]
 //! let mut expecteds = VecDeque::from(vec![
 //!     Command::Pause,
-//!     Command::Delete,
+//!     Command::Delete("c".to_string()),
 //!     Command::Resume,
 //!     Command::Pause,
-//!     Command::Delete,
+//!     Command::Delete("c".to_string()),
 //!     Command::CommitText("ç".to_owned()),
 //!     Command::Resume,
 //! ]);
@@ -61,6 +61,7 @@
 //! while let Some(command) = preprocessor.pop_queue() {
 //!     assert_eq!(command, expecteds.pop_front().unwrap());
 //! }
+//! assert_eq!(expecteds.is_empty(), true);
 //! ```
 //! **Note**: When dealing with non latin languages. The `inhibit` feature allows for the removal of
 //! unwanted characters typically latin characters, as much as posssible.
@@ -116,14 +117,10 @@ impl Preprocessor {
 
     // Cancel the previous operation.
     fn rollback(&mut self) -> bool {
-        if let Some(out) = self.cursor.undo() {
-            #[cfg(feature = "inhibit")]
-            let start = 0;
-            #[cfg(not(feature = "inhibit"))]
-            let start = 1;
-            let end = out.chars().count();
+        let (_, _, _curr_char) = self.cursor.state();
 
-            (start..end).for_each(|_| self.queue.push_back(Command::Delete));
+        if let Some(out) = self.cursor.undo() {
+            self.queue.push_back(Command::Delete(out));
 
             // Clear the remaining code
             while let (None, 1.., ..) = self.cursor.state() {
@@ -136,27 +133,13 @@ impl Preprocessor {
 
             true
         } else {
+            #[cfg(not(feature = "inhibit"))]
+            self.queue
+                .push_back(Command::Delete(_curr_char.to_string()));
             self.cursor.resume();
 
             false
         }
-    }
-
-    // Cancel the previous operation.
-    //
-    // Note that it handles the delete by itself.
-    #[cfg(not(feature = "inhibit"))]
-    fn hard_rollback(&mut self) -> bool {
-        self.queue.push_back(Command::Delete);
-        self.rollback()
-    }
-
-    // Cancel the previous opeartion.
-    //
-    // Note that the delete is supposed already executed.
-    fn soft_rollback(&mut self) -> bool {
-        self.queue.push_back(Command::CleanDelete);
-        self.rollback()
     }
 
     /// Preprocess the keyboard input event and returns infos on his internal changes (change on
@@ -208,8 +191,8 @@ impl Preprocessor {
     /// #[cfg(not(feature = "inhibit"))]
     /// let mut expecteds = VecDeque::from(vec![
     ///     Command::Pause,
-    ///     Command::Delete,
-    ///     Command::Delete,
+    ///     Command::Delete("3".to_string()),
+    ///     Command::Delete("i".to_string()),
     ///     Command::CommitText("ī".to_owned()),
     ///     Command::Resume,
     /// ]);
@@ -218,13 +201,13 @@ impl Preprocessor {
     /// #[cfg(feature = "inhibit")]
     /// let mut expecteds = VecDeque::from(vec![
     ///     Command::Pause,
-    ///     Command::Delete,
+    ///     Command::Delete("s".to_string()),
     ///     Command::Resume,
     ///     Command::Pause,
-    ///     Command::Delete,
+    ///     Command::Delete("i".to_string()),
     ///     Command::Resume,
     ///     Command::Pause,
-    ///     Command::Delete,
+    ///     Command::Delete("3".to_string()),
     ///     Command::CommitText("ī".to_owned()),
     ///     Command::Resume,
     /// ]);
@@ -233,6 +216,7 @@ impl Preprocessor {
     /// while let Some(command) = preprocessor.pop_queue() {
     ///     assert_eq!(command, expecteds.pop_front().unwrap());
     /// }
+    /// assert_eq!(expecteds.is_empty(), true);
     /// ```
     pub fn process(&mut self, event: KeyboardEvent) -> (bool, bool) {
         let (mut changed, mut committed) = (false, false);
@@ -242,7 +226,7 @@ impl Preprocessor {
                 #[cfg(not(feature = "inhibit"))]
                 {
                     self.pause();
-                    committed = self.soft_rollback();
+                    committed = self.rollback();
                     self.resume();
                 }
                 #[cfg(feature = "inhibit")]
@@ -259,7 +243,7 @@ impl Preprocessor {
                 #[cfg(feature = "inhibit")]
                 self.pause();
                 #[cfg(feature = "inhibit")]
-                self.queue.push_back(Command::Delete);
+                self.queue.push_back(Command::Delete(character.clone()));
 
                 let character = character.chars().next().unwrap();
 
@@ -269,17 +253,17 @@ impl Preprocessor {
                     let mut prev_cursor = self.cursor.clone();
                     prev_cursor.undo();
                     #[cfg(not(feature = "inhibit"))]
-                    self.queue.push_back(Command::Delete);
+                    self.queue.push_back(Command::Delete(character.to_string()));
 
                     // Remove the remaining code
-                    while let (None, 1.., ..) = prev_cursor.state() {
+                    while let (None, 1.., _c) = prev_cursor.state() {
                         prev_cursor.undo();
                         #[cfg(not(feature = "inhibit"))]
-                        self.queue.push_back(Command::Delete);
+                        self.queue.push_back(Command::Delete(_c.to_string()));
                     }
 
                     if let (Some(out), ..) = prev_cursor.state() {
-                        (0..out.chars().count()).for_each(|_| self.queue.push_back(Command::Delete))
+                        self.queue.push_back(Command::Delete(out))
                     }
 
                     self.queue.push_back(Command::CommitText(_in));
@@ -338,7 +322,7 @@ impl Preprocessor {
     /// #[cfg(not(feature = "inhibit"))]
     /// let mut expecteds = VecDeque::from(vec![
     ///     Command::Pause,
-    ///     Command::Delete,
+    ///     Command::Delete("s".to_string()),
     ///     Command::CommitText("sī".to_owned()),
     ///     Command::Resume,
     /// ]);
@@ -347,10 +331,9 @@ impl Preprocessor {
     /// #[cfg(feature = "inhibit")]
     /// let mut expecteds = VecDeque::from(vec![
     ///     Command::Pause,
-    ///     Command::Delete,
+    ///     Command::Delete("s".to_string()),
     ///     Command::Resume,
     ///     Command::Pause,
-    ///     Command::CleanDelete,
     ///     Command::CommitText("sī".to_owned()),
     ///     Command::Resume,
     /// ]);
@@ -359,15 +342,13 @@ impl Preprocessor {
     /// while let Some(command) = preprocessor.pop_queue() {
     ///     assert_eq!(command, expecteds.pop_front().unwrap());
     /// }
+    /// assert_eq!(expecteds.is_empty(), true);
     /// ```
     pub fn commit(&mut self, text: String) {
         self.pause();
 
         while !self.cursor.is_empty() {
-            #[cfg(not(feature = "inhibit"))]
-            self.hard_rollback();
-            #[cfg(feature = "inhibit")]
-            self.soft_rollback();
+            self.rollback();
         }
         #[cfg(feature = "inhibit")]
         self.cursor.clear();
@@ -457,6 +438,7 @@ impl Preprocessor {
     /// while let Some(command) = preprocessor.pop_queue() {
     ///     assert_eq!(command, expecteds.pop_front().unwrap());
     /// }
+    /// assert_eq!(expecteds.is_empty(), true);
     pub fn pop_queue(&mut self) -> Option<Command> {
         self.queue.pop_front()
     }
@@ -510,31 +492,43 @@ mod tests {
                 _ => unimplemented!(),
             };
         });
+        #[cfg(not(feature = "inhibit"))]
         let mut expecteds = VecDeque::from(vec![
             // c c
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("c".to_string()),
+            Command::Delete("c".to_string()),
             Command::CommitText("ç".to_owned()),
             Command::Resume,
             // c e d
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
+            Command::Delete("d".to_string()),
+            Command::Delete("e".to_string()),
+            Command::Delete("c".to_string()),
+            Command::Delete("ç".to_string()),
+            Command::CommitText("ç".to_owned()),
             Command::Resume,
-            #[cfg(feature = "inhibit")]
+        ]);
+        #[cfg(feature = "inhibit")]
+        let mut expecteds = VecDeque::from(vec![
+            // c c
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
+            Command::Delete("c".to_string()),
             Command::Resume,
-            #[cfg(feature = "inhibit")]
             Command::Pause,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("c".to_string()),
+            Command::CommitText("ç".to_owned()),
+            Command::Resume,
+            // c e d
+            Command::Pause,
+            Command::Delete("c".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("e".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("d".to_string()),
+            Command::Delete("ç".to_string()),
             Command::CommitText("ç".to_owned()),
             Command::Resume,
         ]);
@@ -542,6 +536,7 @@ mod tests {
         while let Some(command) = preprocessor.pop_queue() {
             assert_eq!(command, expecteds.pop_front().unwrap());
         }
+        assert!(expecteds.is_empty());
     }
 
     #[test]
@@ -558,16 +553,11 @@ mod tests {
 
         let mut expecteds = VecDeque::from(vec![
             Command::Pause,
-            #[cfg(feature = "inhibit")]
-            Command::Delete,
+            Command::Delete("a".to_string()),
             #[cfg(feature = "inhibit")]
             Command::Resume,
             #[cfg(feature = "inhibit")]
             Command::Pause,
-            #[cfg(feature = "inhibit")]
-            Command::CleanDelete,
-            #[cfg(not(feature = "inhibit"))]
-            Command::Delete,
             Command::CommitText("word".to_owned()),
             Command::Resume,
         ]);
@@ -575,6 +565,7 @@ mod tests {
         while let Some(command) = preprocessor.pop_queue() {
             assert_eq!(command, expecteds.pop_front().unwrap());
         }
+        assert!(expecteds.is_empty());
     }
 
     #[test]
@@ -606,23 +597,25 @@ mod tests {
         preprocessor.process(backspace_event);
         assert_eq!(preprocessor.get_input(), "".to_owned());
 
+        #[cfg(not(feature = "inhibit"))]
         let mut expecteds = VecDeque::from(vec![
             Command::Pause,
-            #[cfg(not(feature = "inhibit"))]
-            Command::CleanDelete,
+            Command::Delete("ç".to_string()),
             Command::CommitText("ç".to_owned()),
             Command::Resume,
-            #[cfg(not(feature = "inhibit"))]
             Command::Pause,
-            #[cfg(not(feature = "inhibit"))]
-            Command::CleanDelete,
-            #[cfg(not(feature = "inhibit"))]
+            Command::Delete("ç".to_string()),
             Command::Resume,
         ]);
+
+        // NOTE: The inhibit feature don't support rollback
+        #[cfg(feature = "inhibit")]
+        let mut expecteds = VecDeque::from(vec![]);
 
         while let Some(command) = preprocessor.pop_queue() {
             assert_eq!(command, expecteds.pop_front().unwrap());
         }
+        assert!(expecteds.is_empty());
     }
 
     #[test]
@@ -644,206 +637,255 @@ mod tests {
             };
         });
 
+        #[cfg(not(feature = "inhibit"))]
         let mut expecteds = VecDeque::from(vec![
             // Process
             // u backspace
             Command::Pause,
-            #[cfg(feature = "inhibit")]
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(not(feature = "inhibit"))]
-            Command::CleanDelete,
-            #[cfg(not(feature = "inhibit"))]
+            Command::Delete("u".to_string()),
             Command::Resume,
             // u u backspace
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("u".to_string()),
+            Command::Delete("u".to_string()),
             Command::CommitText("ʉ".to_owned()),
             Command::Resume,
-            #[cfg(not(feature = "inhibit"))]
             Command::Pause,
-            #[cfg(not(feature = "inhibit"))]
-            Command::CleanDelete,
-            #[cfg(not(feature = "inhibit"))]
+            Command::Delete("ʉ".to_string()),
             Command::Resume,
             // u
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            #[cfg(feature = "inhibit")]
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
+            // NOP
             // c _
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("_".to_string()),
+            Command::Delete("c".to_string()),
             Command::CommitText("ç".to_owned()),
             Command::Resume,
             // c e d
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("d".to_string()),
+            Command::Delete("e".to_string()),
+            Command::Delete("c".to_string()),
+            Command::Delete("ç".to_string()),
             Command::CommitText("ç".to_owned()),
             Command::Resume,
             // u u
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("u".to_string()),
+            Command::Delete("u".to_string()),
             Command::CommitText("ʉ".to_owned()),
             Command::Resume,
             // a f 3
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("3".to_string()),
+            Command::Delete("f".to_string()),
+            Command::Delete("a".to_string()),
+            Command::Delete("ʉ".to_string()),
             Command::CommitText("ʉ\u{304}ɑ\u{304}".to_owned()),
             Command::Resume,
             // a f
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("f".to_string()),
+            Command::Delete("a".to_string()),
             Command::CommitText("ɑ".to_owned()),
             Command::Resume,
             // a f
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("f".to_string()),
+            Command::Delete("a".to_string()),
             Command::CommitText("ɑ".to_owned()),
             Command::Resume,
             // a f
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("f".to_string()),
+            Command::Delete("a".to_string()),
             Command::CommitText("ɑ".to_owned()),
             Command::Resume,
             // f
             Command::Pause,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("f".to_string()),
+            Command::Delete("ɑ".to_string()),
             Command::CommitText("ɑɑ".to_owned()),
             Command::Resume,
             // 3
             Command::Pause,
-            Command::Delete,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("3".to_string()),
+            Command::Delete("ɑɑ".to_string()),
             Command::CommitText("ɑ\u{304}ɑ\u{304}".to_owned()),
             Command::Resume,
             // uu
             Command::Pause,
-            Command::Delete,
-            #[cfg(feature = "inhibit")]
-            Command::Resume,
-            #[cfg(feature = "inhibit")]
-            Command::Pause,
-            Command::Delete,
+            Command::Delete("u".to_string()),
+            Command::Delete("u".to_string()),
             Command::CommitText("ʉ".to_owned()),
             Command::Resume,
             // 3
             Command::Pause,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("3".to_string()),
+            Command::Delete("ʉ".to_string()),
             Command::CommitText("ʉ\u{304}".to_owned()),
             Command::Resume,
             // Rollback
             Command::Pause,
-            Command::CleanDelete,
-            Command::Delete,
+            Command::Delete("ʉ\u{304}".to_string()),
             Command::CommitText("ʉ".to_owned()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("ʉ".to_string()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
-            Command::Delete,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("ɑ\u{304}ɑ\u{304}".to_string()),
             Command::CommitText("ɑɑ".to_owned()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
-            Command::Delete,
+            Command::Delete("ɑɑ".to_string()),
             Command::CommitText("ɑ".to_owned()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("ɑ".to_string()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("ɑ".to_string()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("ɑ".to_string()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
-            Command::Delete,
-            Command::Delete,
-            Command::Delete,
+            Command::Delete("ʉ\u{304}ɑ\u{304}".to_string()),
             Command::CommitText("ʉ".to_owned()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("ʉ".to_string()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("ç".to_string()),
             Command::CommitText("ç".to_owned()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("ç".to_string()),
+            Command::Resume,
+            // yes, the buffer is empty, but we want leave the user use the backspace.
+            Command::Pause,
+            Command::Delete("\0".to_string()),
+            Command::Resume,
+        ]);
+        #[cfg(feature = "inhibit")]
+        let mut expecteds = VecDeque::from(vec![
+            // Process
+            // u backspace
+            Command::Pause,
+            Command::Delete("u".to_string()),
+            Command::Resume,
+            // u u backspace
+            Command::Pause,
+            Command::Delete("u".to_string()),
             Command::Resume,
             Command::Pause,
-            Command::CleanDelete,
+            Command::Delete("u".to_string()),
+            Command::CommitText("ʉ".to_owned()),
             Command::Resume,
+            // u
+            Command::Pause,
+            Command::Delete("u".to_string()),
+            Command::Resume,
+            // c _
+            Command::Pause,
+            Command::Delete("c".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("_".to_string()),
+            Command::CommitText("ç".to_owned()),
+            Command::Resume,
+            // c e d
+            Command::Pause,
+            Command::Delete("c".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("e".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("d".to_string()),
+            Command::Delete("ç".to_string()),
+            Command::CommitText("ç".to_owned()),
+            Command::Resume,
+            // u u
+            Command::Pause,
+            Command::Delete("u".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("u".to_string()),
+            Command::CommitText("ʉ".to_owned()),
+            Command::Resume,
+            // a f 3
+            Command::Pause,
+            Command::Delete("a".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("f".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("3".to_string()),
+            Command::Delete("ʉ".to_string()),
+            Command::CommitText("ʉ\u{304}ɑ\u{304}".to_owned()),
+            Command::Resume,
+            // a f
+            Command::Pause,
+            Command::Delete("a".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("f".to_string()),
+            Command::CommitText("ɑ".to_owned()),
+            Command::Resume,
+            // a f
+            Command::Pause,
+            Command::Delete("a".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("f".to_string()),
+            Command::CommitText("ɑ".to_owned()),
+            Command::Resume,
+            // a f
+            Command::Pause,
+            Command::Delete("a".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("f".to_string()),
+            Command::CommitText("ɑ".to_owned()),
+            Command::Resume,
+            // f
+            Command::Pause,
+            Command::Delete("f".to_string()),
+            Command::Delete("ɑ".to_string()),
+            Command::CommitText("ɑɑ".to_owned()),
+            Command::Resume,
+            // 3
+            Command::Pause,
+            Command::Delete("3".to_string()),
+            Command::Delete("ɑɑ".to_string()),
+            Command::CommitText("ɑ\u{304}ɑ\u{304}".to_owned()),
+            Command::Resume,
+            // uu
+            Command::Pause,
+            Command::Delete("u".to_string()),
+            Command::Resume,
+            Command::Pause,
+            Command::Delete("u".to_string()),
+            Command::CommitText("ʉ".to_owned()),
+            Command::Resume,
+            // 3
+            Command::Pause,
+            Command::Delete("3".to_string()),
+            Command::Delete("ʉ".to_owned()),
+            Command::CommitText("ʉ\u{304}".to_owned()),
+            Command::Resume,
+            // Rollback
+            // NOTE: The inhibit feature don't support rollback
         ]);
 
         while let Some(command) = preprocessor.pop_queue() {
-            assert_eq!(command, expecteds.pop_front().unwrap());
+            let c = expecteds.pop_front().unwrap();
+            assert_eq!(command, c);
         }
+        assert!(expecteds.is_empty());
     }
 }
