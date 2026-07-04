@@ -13,6 +13,7 @@ pub struct Console {
     predicates: Vec<Predicate>,
     current_predicate_id: usize,
     input: String,
+    output: String,
     idle_state: bool,
     tx: Option<Sender<Command>>,
     rx: Option<Receiver<Command>>,
@@ -37,6 +38,7 @@ impl Frontend for Console {
             let command = self.rx.as_ref().unwrap().recv()?;
             match command {
                 Command::InputText(input) => self.set_input_text(input.to_owned()),
+                Command::OutputText(output) => self.set_output_text(output.to_owned()),
                 Command::PageSize(size) => self.set_max_predicates(size),
                 Command::State(state) => self.set_state(state),
                 Command::Predicate(predicate) => self.add_predicate(predicate.to_owned()),
@@ -61,6 +63,7 @@ impl Frontend for Console {
                         "_state_" if self.idle_state => {
                             tx.send(Command::State(false))?;
                             self.input = String::default();
+                            self.output = String::default();
                         }
                         "_exit_" => {
                             tx.send(Command::End)?;
@@ -87,6 +90,9 @@ impl Console {
     fn display(&mut self) {
         // Input
         println!("input: {}", self.input);
+
+        // Output
+        println!("output: {}", self.output);
 
         // Predicates
         let page_size = std::cmp::min(self.page_size, self.predicates.len());
@@ -120,6 +126,7 @@ impl Console {
         self.predicates.clear();
         self.current_predicate_id = 0;
         self.input = String::default();
+        self.output = String::default();
     }
 
     fn set_max_predicates(&mut self, size: usize) {
@@ -129,6 +136,10 @@ impl Console {
 
     fn set_input_text(&mut self, text: String) {
         self.input = text;
+    }
+
+    fn set_output_text(&mut self, text: String) {
+        self.output = text;
     }
 
     fn add_predicate(&mut self, predicate: Predicate) {
@@ -197,7 +208,16 @@ mod tests {
         assert_eq!(rx2.recv().unwrap(), Command::NOP);
 
         tx1.send(Command::PageSize(10)).unwrap();
+
+        tx1.send(Command::InputText("ngaf3".to_owned())).unwrap();
+        tx1.send(Command::OutputText("ngɑ̄".to_owned())).unwrap();
+        tx1.send(Command::Update).unwrap();
+
+        tx1.send(Command::Clear).unwrap();
+        tx1.send(Command::Update).unwrap();
+
         tx1.send(Command::InputText("he".to_owned())).unwrap();
+        tx1.send(Command::OutputText("he".to_owned())).unwrap();
         tx1.send(Command::Predicate(Predicate {
             code: "hell".to_owned(),
             remaining_code: "llo".to_owned(),
@@ -226,8 +246,8 @@ mod tests {
             can_commit: false,
         }))
         .unwrap();
-
         tx1.send(Command::Update).unwrap();
+
         tx1.send(Command::SelectPreviousPredicate).unwrap();
         tx1.send(Command::SelectedPredicate).unwrap();
         assert_eq!(
