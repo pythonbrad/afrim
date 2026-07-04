@@ -536,7 +536,7 @@ mod tests {
         while let Some(command) = preprocessor.pop_queue() {
             assert_eq!(command, expecteds.pop_front().unwrap());
         }
-        assert_eq!(expecteds.is_empty(), true);
+        assert!(expecteds.is_empty());
     }
 
     #[test]
@@ -565,7 +565,7 @@ mod tests {
         while let Some(command) = preprocessor.pop_queue() {
             assert_eq!(command, expecteds.pop_front().unwrap());
         }
-        assert_eq!(expecteds.is_empty(), true);
+        assert!(expecteds.is_empty());
     }
 
     #[test]
@@ -615,7 +615,7 @@ mod tests {
         while let Some(command) = preprocessor.pop_queue() {
             assert_eq!(command, expecteds.pop_front().unwrap());
         }
-        assert_eq!(expecteds.is_empty(), true);
+        assert!(expecteds.is_empty());
     }
 
     #[test]
@@ -886,6 +886,6 @@ mod tests {
             let c = expecteds.pop_front().unwrap();
             assert_eq!(command, c);
         }
-        assert_eq!(expecteds.is_empty(), true);
+        assert!(expecteds.is_empty());
     }
 }
