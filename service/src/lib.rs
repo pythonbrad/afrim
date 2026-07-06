@@ -28,7 +28,7 @@ pub fn run(
             .map(|(key, value)| vec![key.as_str(), value.as_str()])
             .collect(),
     );
-    let (buffer_size, auto_commit, page_size) = config
+    let (buffer_size, auto_commit, page_size, min_confidence) = config
         .core
         .as_ref()
         .map(|core| {
@@ -36,15 +36,16 @@ pub fn run(
                 core.buffer_size.unwrap_or(32),
                 core.auto_commit.unwrap_or(false),
                 core.page_size.unwrap_or(10),
+                core.min_confidence.unwrap_or(0.7),
             )
         })
-        .unwrap_or((32, false, 10));
+        .unwrap_or((32, false, 10, 0.7));
     let mut keyboard = Enigo::new(&Default::default()).unwrap();
     let mut preprocessor = Preprocessor::new(Rc::new(memory), buffer_size);
     #[cfg(not(feature = "rhai"))]
-    let translator = Translator::new(config.extract_translation(), auto_commit);
+    let translator = Translator::new(config.extract_translation(), auto_commit, min_confidence);
     #[cfg(feature = "rhai")]
-    let mut translator = Translator::new(config.extract_translation(), auto_commit);
+    let mut translator = Translator::new(config.extract_translation(), auto_commit, min_confidence);
     #[cfg(feature = "rhai")]
     config
         .extract_translators()

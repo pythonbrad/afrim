@@ -5,6 +5,7 @@ buffer_size = 64
 auto_capitalize = false
 auto_commit = false
 page_size = 10
+min_confidence = 0.7
 
 [data]
 sample = { path = "./data_sample.toml" }
