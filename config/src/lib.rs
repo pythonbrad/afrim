@@ -178,6 +178,7 @@ pub struct Config {
 /// auto_capitalize = false
 /// page_size = 10
 /// auto_commit = true
+/// min_confidence = 0.7
 /// # "#.to_owned());
 /// #
 /// # // Loads the config file.
@@ -193,6 +194,8 @@ pub struct CoreConfig {
     pub page_size: Option<usize>,
     /// Whether the predicate should be automatically committed.
     pub auto_commit: Option<bool>,
+    /// The minimun confidence of the selected predicates.
+    pub min_confidence: Option<f64>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -507,6 +510,7 @@ mod tests {
                 assert!(!core.auto_capitalize.unwrap());
                 assert!(!core.auto_commit.unwrap());
                 assert_eq!(core.page_size.unwrap(), 10);
+                assert_eq!(core.min_confidence.unwrap(), 0.7);
                 true
             }),
             Some(true)

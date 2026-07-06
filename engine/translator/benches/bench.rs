@@ -34,7 +34,7 @@ pub fn translate(c: &mut Criterion) {
     });
 
     // Initializes the translator.
-    let mut translator = Translator::new(dictionary, false);
+    let mut translator = Translator::new(dictionary, false, 0.7);
 
     // Registers a translator.
     #[cfg(feature = "rhai")]

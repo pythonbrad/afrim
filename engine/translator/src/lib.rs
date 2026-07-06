@@ -30,7 +30,7 @@
 //! dictionary.insert("nihao".to_string(), vec!["hello".to_string()]);
 //!
 //! // Builds the translator.
-//! let mut translator = Translator::new(dictionary, true);
+//! let mut translator = Translator::new(dictionary, true, 0.7);
 //!
 //! assert_eq!(
 //!     translator.translate("jump"),
@@ -64,7 +64,7 @@
 //! dictionary.insert("jumper".to_string(), vec!["sauteur".to_string()]);
 //!
 //! // Builds the translator.
-//! let mut translator = Translator::new(dictionary, true);
+//! let mut translator = Translator::new(dictionary, true, 0.7);
 //!
 //! // Auto-suggestion / Auto-correction.
 //! #[cfg(feature = "strsim")]
@@ -106,7 +106,7 @@
 //! "#).unwrap();
 //!
 //! // Builds the translator.
-//! let mut translator = Translator::new(dictionary, true);
+//! let mut translator = Translator::new(dictionary, true, 0.7);
 //!
 //! // Registers the jump translator.
 //! #[cfg(feature = "rhai")]
@@ -171,6 +171,7 @@ pub struct Translator {
     #[cfg(feature = "rhai")]
     engine: Engine,
     auto_commit: bool,
+    min_confidence: f64,
 }
 
 impl Translator {
@@ -183,9 +184,13 @@ impl Translator {
     /// use indexmap::IndexMap;
     ///
     /// let dictionary = IndexMap::new();
-    /// let translator = Translator::new(dictionary, false);
+    /// let translator = Translator::new(dictionary, false, 0.7);
     /// ```
-    pub fn new(dictionary: IndexMap<String, Vec<String>>, auto_commit: bool) -> Self {
+    pub fn new(
+        dictionary: IndexMap<String, Vec<String>>,
+        auto_commit: bool,
+        min_confidence: f64,
+    ) -> Self {
         Self {
             dictionary,
             auto_commit,
@@ -193,6 +198,7 @@ impl Translator {
             translators: IndexMap::default(),
             #[cfg(feature = "rhai")]
             engine: Engine::new(),
+            min_confidence,
         }
     }
 
@@ -248,7 +254,7 @@ impl Translator {
     /// let date_translator = engine.compile(date_translator).unwrap();
     ///
     /// // We build the translator.
-    /// let mut translator = Translator::new(IndexMap::new(), true);
+    /// let mut translator = Translator::new(IndexMap::new(), true, 0.7);
     ///
     /// // We register our date translator.
     /// translator.register("date_translator".to_owned(), date_translator);
@@ -282,7 +288,7 @@ impl Translator {
     /// let erase_translator = engine.compile("fn translate(input) { [input, \"\", [], true] }").unwrap();
     ///
     /// // We build the translator.
-    /// let mut translator = Translator::new(IndexMap::new(), false);
+    /// let mut translator = Translator::new(IndexMap::new(), false, 0.7);
     ///
     /// // We register the erase translator.
     /// translator.register("erase".to_owned(), erase_translator);
@@ -320,7 +326,7 @@ impl Translator {
     /// dictionary.insert("salade".to_owned(), vec!["vegetable".to_owned()]);
     ///
     /// // We build the translator.
-    /// let translator = Translator::new(dictionary, false);
+    /// let translator = Translator::new(dictionary, false, 0.7);
     /// assert_eq!(
     ///     translator.translate("sal"),
     ///     vec![
@@ -384,7 +390,7 @@ impl Translator {
                     .map(|n| 1.0 - (n as f64 / key_len as f64))
                     .unwrap_or(0.0);
 
-                if confidence > 0.7 {
+                if confidence > self.min_confidence {
                     return Some((
                         confidence,
                         Predicate {
@@ -479,9 +485,9 @@ mod tests {
 
         // We config the translator
         #[cfg(not(feature = "rhai"))]
-        let translator = Translator::new(dictionary, true);
+        let translator = Translator::new(dictionary, true, 0.7);
         #[cfg(feature = "rhai")]
-        let mut translator = Translator::new(dictionary, true);
+        let mut translator = Translator::new(dictionary, true, 0.7);
 
         // Test the filtering
         translator.translate("ù");
