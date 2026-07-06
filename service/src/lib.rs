@@ -292,7 +292,6 @@ mod tests {
         thread::sleep(typing_speed_ms);
 
         input!(KeyU, typing_speed_ms);
-        #[cfg(not(feature = "inhibit"))]
         input!(Backspace, typing_speed_ms);
         input!(KeyU KeyU Backspace KeyU, typing_speed_ms);
         input!(
@@ -303,18 +302,10 @@ mod tests {
             KeyA KeyF KeyA KeyF
             KeyA KeyF KeyF Num3, typing_speed_ms);
         input!(KeyU KeyU Num3, typing_speed_ms);
-        #[cfg(feature = "inhibit")]
-        output!(textfield, format!("{LIMIT}çʉ̄ɑ̄ɑɑɑ̄ɑ̄ʉ̄"));
-        #[cfg(not(feature = "inhibit"))]
         output!(textfield, format!("{LIMIT}uçʉ̄ɑ̄ɑɑɑ̄ɑ̄ʉ̄"));
 
         // We verify that the undo (backspace) works as expected
-        #[cfg(not(feature = "inhibit"))]
         (0..12).for_each(|_| {
-            input!(Backspace, typing_speed_ms);
-        });
-        #[cfg(feature = "inhibit")]
-        (0..13).for_each(|_| {
             input!(Backspace, typing_speed_ms);
         });
         output!(textfield, LIMIT);

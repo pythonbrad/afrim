@@ -21,7 +21,6 @@ path = "./src/main.rs"
 default = ["rhai", "strsim"]
 rhai = ["afrim-config/rhai", "afrim-translator/rhai"]
 strsim = ["afrim-translator/strsim"]
-inhibit = ["afrim-preprocessor/inhibit"]
 serde = ["dep:serde", "afrim-translator/serde"]
 
 [dependencies]
