@@ -29,9 +29,12 @@ enigo = "0.6.1"
 afrim-config = { version = "0.4.6", path = "../config", default-features = false }
 afrim-preprocessor = { version = "0.6.2", path = "../engine/preprocessor", default-features = false }
 afrim-translator = { version = "0.2.2", path = "../engine/translator", default-features = false }
-rdev = "0.5.3"
+rdev = { git = "https://github.com/Narsil/rdev.git", rev = "b7e201bf80be7b9632207366f277d29fe732b9c1" }
 anyhow = "1.0.100"
 serde = { version = "1.0.228", optional = true }
 
+[target.'cfg(all(target_family = "unix", not(target_os = "macos")))'.dependencies]
+rdev = { git = "https://github.com/Narsil/rdev.git", rev = "b7e201bf80be7b9632207366f277d29fe732b9c1", features = ["x11"] }
+
 [dev-dependencies]
-afrish = { version = "0.1.0", default-features = false, git = "https://github.com/fodydev/afrish", rev = "e8c4fa2" }
+afrish = "0.1.1"
