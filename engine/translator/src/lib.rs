@@ -20,8 +20,9 @@
 //! # Example
 //!
 //! ```
-//! use afrim_translator::{Predicate, Translator};
-//! use indexmap::IndexMap;
+//! use afrim_translator::{Predicate, Translator, IndexMap};
+//! #[cfg(feature = "rhai")]
+//! use afrim_translator::AST;
 //!
 //! // Prepares the dictionary.
 //! let mut dictionary = IndexMap::new();
@@ -55,8 +56,7 @@
 //! # Example with the strsim feature
 //!
 //! ```
-//! use afrim_translator::{Predicate, Translator};
-//! use indexmap::IndexMap;
+//! use afrim_translator::{Predicate, Translator, IndexMap};
 //!
 //! // Prepares the dictionary.
 //! let mut dictionary = IndexMap::new();
@@ -83,9 +83,8 @@
 //!
 //! ```
 //! #[cfg(feature = "rhai")]
-//! use afrim_translator::Engine;
-//! use afrim_translator::{Translator, Predicate};
-//! use indexmap::IndexMap;
+//! use afrim_translator::{AST, Engine};
+//! use afrim_translator::{Predicate, Translator, IndexMap};
 //!
 //! // Prepares the dictionary.
 //! let mut dictionary = IndexMap::new();
@@ -96,7 +95,7 @@
 //! #[cfg(feature = "rhai")]
 //! let engine = Engine::new();
 //! #[cfg(feature = "rhai")]
-//! let jump_translator = engine.compile(r#"
+//! let jump_translator: AST = engine.compile(r#"
 //!     // The main script function.
 //!     fn translate(input) {
 //!         if input == "jump" {
@@ -140,11 +139,11 @@
 //! );
 //! ```
 
-use indexmap::IndexMap;
+pub use indexmap::IndexMap;
 #[cfg(feature = "rhai")]
-pub use rhai::Engine;
+use rhai::{Array, Scope};
 #[cfg(feature = "rhai")]
-use rhai::{Array, Scope, AST};
+pub use rhai::{Engine, AST};
 use std::cmp::Ordering;
 #[cfg(feature = "strsim")]
 use strsim::{self};
@@ -180,8 +179,7 @@ impl Translator {
     /// # Example
     ///
     /// ```
-    /// use afrim_translator::Translator;
-    /// use indexmap::IndexMap;
+    /// use afrim_translator::{Translator, IndexMap};
     ///
     /// let dictionary = IndexMap::new();
     /// let translator = Translator::new(dictionary, false, 0.7);
@@ -211,8 +209,7 @@ impl Translator {
     /// # Example
     ///
     /// ```
-    /// use afrim_translator::{Engine, Predicate, Translator};
-    /// use indexmap::IndexMap;
+    /// use afrim_translator::{Engine, Predicate, Translator, IndexMap};
     ///
     /// // We prepare the script.
     /// let date_translator = r#"
@@ -280,8 +277,7 @@ impl Translator {
     ///
     /// # Example
     /// ```
-    /// use afrim_translator::{Engine, Predicate, Translator};
-    /// use indexmap::IndexMap;
+    /// use afrim_translator::{Engine, Predicate, Translator, IndexMap};
     ///
     /// // We prepare the script.
     /// let engine = Engine::new();
@@ -317,8 +313,7 @@ impl Translator {
     /// # Example
     ///
     /// ```
-    /// use indexmap::IndexMap;
-    /// use afrim_translator::{Predicate, Translator};
+    /// use afrim_translator::{IndexMap, Predicate, Translator};
     ///
     /// // We prepares the dictionary.
     /// let mut dictionary = IndexMap::new();
@@ -476,8 +471,7 @@ mod tests {
     fn test_translate() {
         #[cfg(feature = "rhai")]
         use crate::Engine;
-        use crate::{Predicate, Translator};
-        use indexmap::IndexMap;
+        use crate::{IndexMap, Predicate, Translator};
 
         // We build the translation
         let mut dictionary = IndexMap::new();
