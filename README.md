@@ -43,7 +43,6 @@ Features
   - [ ] 💻 Support for both desktop and web platform.
   - [ ] 🤖 Support for the Rhai scripting language.
   - [ ] 📝 Auto-suggestion / Auto-correction / Auto-completion.
-  - [ ] ☁️  Full immersion mode for non-latin languages. (🚧 Experimental 🚧)
 
 Installation
 ===
