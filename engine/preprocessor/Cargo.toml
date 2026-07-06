@@ -17,7 +17,7 @@ inhibit = []
 serde = ["dep:serde", "keyboard-types/serde"]
 
 [dependencies]
-keyboard-types = { version = "0.8.3", default-features = false }
+keyboard-types = { version = "0.8.3", features = ["webdriver"] }
 afrim-memory = { version = "0.4.2", path = "../../memory" }
 serde = { version = "1.0.228", features = ["derive"], optional = true }
 

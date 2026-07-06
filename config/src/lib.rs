@@ -65,9 +65,11 @@
 //! ```
 
 use anyhow::{anyhow, Context, Result};
-use indexmap::IndexMap;
+pub use indexmap::IndexMap;
 #[cfg(feature = "rhai")]
-use rhai::{Engine, AST};
+use rhai::Engine;
+#[cfg(feature = "rhai")]
+pub use rhai::AST;
 use serde::Deserialize;
 use std::{fs, path::Path};
 use toml::{self};

@@ -8,15 +8,12 @@
 //! # Example
 //!
 //! ```
-//! use afrim_preprocessor::{utils, Command, Preprocessor};
-//! use keyboard_types::{
-//!     webdriver::{self, Event},
-//! };
+//! use afrim_preprocessor::{utils::{self, webdriver}, Command, Preprocessor, Node};
 //! use std::{collections::VecDeque, rc::Rc};
 //!
 //! // Prepares the memory.
 //! let data = utils::load_data("cc ç");
-//! let text_buffer = utils::build_map(data);
+//! let text_buffer: Node = utils::build_map(data);
 //! let memory = Rc::new(text_buffer);
 //!
 //! // Builds the preprocessor.
@@ -29,7 +26,7 @@
 //!     .for_each(|event| {
 //!         match event {
 //!             // Triggers the generated keyboard input event.
-//!             Event::Keyboard(event) => preprocessor.process(event),
+//!             webdriver::Event::Keyboard(event) => preprocessor.process(event),
 //!             _ => unimplemented!(),
 //!         };
 //!     });
@@ -69,10 +66,16 @@
 mod message;
 
 pub use crate::message::Command;
-pub use afrim_memory::utils;
-use afrim_memory::{Cursor, Node};
+use afrim_memory::Cursor;
+pub use afrim_memory::Node;
 pub use keyboard_types::{Key, KeyState, KeyboardEvent, NamedKey};
 use std::{collections::VecDeque, rc::Rc};
+
+/// Utilities.
+pub mod utils {
+    pub use afrim_memory::utils::{build_map, load_data};
+    pub use keyboard_types::webdriver;
+}
 
 /// The main structure of the preprocessor.
 #[derive(Debug)]
@@ -297,8 +300,7 @@ impl Preprocessor {
     /// # Example
     ///
     /// ```
-    /// use afrim_preprocessor::{Command, Preprocessor, utils};
-    /// use keyboard_types::{Key::Character, KeyboardEvent};
+    /// use afrim_preprocessor::{Command, Preprocessor, utils, KeyboardEvent, Key::Character};
     /// use std::{collections::VecDeque, rc::Rc};
     ///
     /// // We prepare the memory.
@@ -377,8 +379,7 @@ impl Preprocessor {
     /// # Example
     ///
     /// ```
-    /// use afrim_preprocessor::{Command, Preprocessor, utils};
-    /// use keyboard_types::webdriver::{self, Event};
+    /// use afrim_preprocessor::{Command, Preprocessor, utils::{self, webdriver}};
     /// use std::{collections::VecDeque, rc::Rc};
     ///
     /// // We prepare the memory.
@@ -395,7 +396,7 @@ impl Preprocessor {
     ///     .for_each(|event| {
     ///         match event {
     ///             // Triggers the generated keyboard input event.
-    ///             Event::Keyboard(event) => preprocessor.process(event),
+    ///             webdriver::Event::Keyboard(event) => preprocessor.process(event),
     ///             _ => unimplemented!(),
     ///         };
     ///     });
@@ -470,12 +471,11 @@ impl Preprocessor {
 #[cfg(test)]
 mod tests {
     use crate::message::Command;
-    use crate::utils;
     use crate::Preprocessor;
-    use keyboard_types::{
-        webdriver::{self, Event},
-        Key::*,
-        NamedKey,
+    use crate::{
+        utils::{self, webdriver},
+        Key::{Character, Named},
+        KeyboardEvent, NamedKey, Node,
     };
     use std::collections::VecDeque;
 
@@ -488,7 +488,7 @@ mod tests {
         let mut preprocessor = Preprocessor::new(Rc::new(memory), 8);
         webdriver::send_keys("ccced").into_iter().for_each(|e| {
             match e {
-                Event::Keyboard(e) => preprocessor.process(e),
+                webdriver::Event::Keyboard(e) => preprocessor.process(e),
                 _ => unimplemented!(),
             };
         });
@@ -541,9 +541,6 @@ mod tests {
 
     #[test]
     fn test_commit() {
-        use afrim_memory::Node;
-        use keyboard_types::KeyboardEvent;
-
         let mut preprocessor = Preprocessor::new(Node::default().into(), 8);
         preprocessor.process(KeyboardEvent {
             key: Character("a".to_owned()),
@@ -570,7 +567,6 @@ mod tests {
 
     #[test]
     fn test_rollback() {
-        use keyboard_types::KeyboardEvent;
         use std::rc::Rc;
 
         let data = utils::load_data("ccced ç\ncc ç");
@@ -583,7 +579,7 @@ mod tests {
 
         webdriver::send_keys("ccced").into_iter().for_each(|e| {
             match e {
-                Event::Keyboard(e) => preprocessor.process(e),
+                webdriver::Event::Keyboard(e) => preprocessor.process(e),
                 _ => unimplemented!(),
             };
         });
@@ -632,7 +628,7 @@ mod tests {
             \u{E003}\u{E003}\u{E003}\u{E003}\u{E003}\u{E003}\u{E003}\u{E003}\u{E003}\u{E003}\u{E003}\u{E003}"
         ).into_iter().for_each(|e| {
             match e {
-                Event::Keyboard(e) => preprocessor.process(e),
+                webdriver::Event::Keyboard(e) => preprocessor.process(e),
                 _ => unimplemented!(),
             };
         });
