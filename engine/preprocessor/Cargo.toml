@@ -13,13 +13,9 @@ authors.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
 default = []
-inhibit = []
 serde = ["dep:serde", "keyboard-types/serde"]
 
 [dependencies]
 keyboard-types = { version = "0.8.3", features = ["webdriver"] }
 afrim-memory = { version = "0.4.2", path = "../../memory" }
 serde = { version = "1.0.228", features = ["derive"], optional = true }
-
-[dev-dependencies]
-keyboard-types = { version = "0.8.3", features = ["webdriver"] }
