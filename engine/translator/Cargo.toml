@@ -1,6 +1,6 @@
 [package]
 name = "afrim-translator"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "Manage the predication system of the afrim input method."
 keywords = ["auto-complete", "ime", "predication"]
