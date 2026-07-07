@@ -1,6 +1,6 @@
 [package]
 name = "afrim"
-version = "0.6.2"
+version = "0.7.0"
 edition = "2021"
 description = "Core library of the afrim input method."
 keywords = ["ime", "keyboard"]
@@ -26,9 +26,9 @@ serde = ["dep:serde", "afrim-translator/serde"]
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
 enigo = "0.6.1"
-afrim-config = { version = "0.4.6", path = "../config", default-features = false }
-afrim-preprocessor = { version = "0.6.2", path = "../engine/preprocessor", default-features = false }
-afrim-translator = { version = "0.2.2", path = "../engine/translator", default-features = false }
+afrim-config = { version = "0.4.8", path = "../config", default-features = false }
+afrim-preprocessor = { version = "0.7.0", path = "../engine/preprocessor", default-features = false }
+afrim-translator = { version = "0.2.4", path = "../engine/translator", default-features = false }
 rdev = { git = "https://github.com/Narsil/rdev.git", rev = "b7e201bf80be7b9632207366f277d29fe732b9c1" }
 anyhow = "1.0.103"
 serde = { version = "1.0.228", optional = true }

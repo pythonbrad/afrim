@@ -1,6 +1,6 @@
 [package]
 name = "afrim-config"
-version = "0.4.7"
+version = "0.4.8"
 edition = "2021"
 description = "Handle the configuration of the afrim input method."
 keywords = ["ime", "config"]

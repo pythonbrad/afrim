@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+### Added
+
+### Fixed
+
+## [0.7.0] - 2026-07-07
+
+### Changed
+
+- (lib) Updated dependencies. [(#295)](https://github.com/fodydev/afrim/pull/295)
+- Removed the inhibit feature. [(#294)](https://github.com/fodydev/afrim/pull/294)
+- (lib) Improved the afrim api. [(#286)](https://github.com/fodydev/afrim/pull/286) & [(#292)](https://github.com/fodydev/afrim/pull/292)
+- Updated rust toolchain version to 1.96. [(#279)](https://github.com/fodydev/afrim/pull/279) & [(#280)](https://github.com/fodydev/afrim/pull/280)
+
+### Added
+
+- Added the possibility to adjust the prediction confidence in the configuration file. [(#291)](https://github.com/fodydev/afrim/pull/291)
+
+### Fixed
+
+- Improved the performance of configuration files loading. [(#281)](https://github.com/fodydev/afrim/pull/281)
+- Improved the performance of the translation system. [(#278)](https://github.com/fodydev/afrim/pull/278)
+
 ## [0.6.2] - 2025-10-23
 
 - (lib) Updated dependencies. [(#275)](https://github.com/fodydev/afrim/pull/275)
