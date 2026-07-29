@@ -44,10 +44,10 @@ Features
   - [ ] 🤖 Support for the Rhai scripting language.
   - [ ] 📝 Auto-suggestion / Auto-correction / Auto-completion.
 
-Installation (development only)
+Installation
 ===
 
-This section is only for developers. if you plan to use afrim outside of the development scope, please consider an [afrim frontend](#-frontends).
+This section is only for contributors. if you plan to use afrim outside of the development scope, please consider an [afrim frontend](#-frontends).
 
 Build dependencies (Linux only)
 ---
