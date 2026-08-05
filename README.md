@@ -120,5 +120,5 @@ If you like this project, please star and share our repositories. If you feel ge
 
 ### Our sponsors
 
-we are open for sponsorships.
+We are open for sponsorships.
 Fell free contact us at hello@fodydev.org
