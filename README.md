@@ -120,6 +120,5 @@ If you like this project, please star and share our repositories. If you feel ge
 
 ### Our sponsors
 
-<a href="https://www.kasahorow.com">
-    <img src="https://www.kasahorow.com/kasahorow_com.png" width="238">
-</a>
+we are open for sponsorships.
+Fell free contact us at hello@fodydev.org
