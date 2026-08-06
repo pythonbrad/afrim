@@ -15,8 +15,8 @@ pub fn from_event(event: &rdev::Event) -> KeyboardEvent {
         .filter(|c| c.is_alphanumeric() || c.is_ascii_punctuation())
         .map(|c| Key::Character(c.to_string()));
     let (state, key) = match event.event_type {
-        rdev::EventType::KeyPress(key) => (KeyState::Down, from_key(key)),
-        rdev::EventType::KeyRelease(key) => (KeyState::Up, from_key(key)),
+        rdev::EventType::KeyPress(key) => (KeyState::Down, from_key(&key)),
+        rdev::EventType::KeyRelease(key) => (KeyState::Up, from_key(&key)),
         _ => Default::default(),
     };
 
@@ -28,7 +28,7 @@ pub fn from_event(event: &rdev::Event) -> KeyboardEvent {
 }
 
 /// Converts an rdev::Key into a Key.
-pub fn from_key(key: rdev::Key) -> Key {
+pub fn from_key(key: &rdev::Key) -> Key {
     match key {
         rdev::Key::Alt => Key::Named(Alt),
         rdev::Key::AltGr => Key::Named(AltGraph),

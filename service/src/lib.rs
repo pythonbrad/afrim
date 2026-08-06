@@ -5,7 +5,7 @@ pub use afrim_config::Config;
 use afrim_preprocessor::{utils, Command as EventCmd, Preprocessor};
 use afrim_translator::Translator;
 use anyhow::{Context, Result};
-use enigo::{Direction, Enigo, Key, Keyboard};
+use enigo::{Enigo, Keyboard};
 use frontend::{Command as GUICmd, Frontend};
 use rdev::{self, EventType, Key as E_Key};
 use std::{rc::Rc, sync::mpsc, thread};
@@ -17,8 +17,8 @@ pub fn run(
 ) -> Result<()> {
     // State.
     let mut is_ctrl_released = true;
-    let mut is_backspace_pressed = false;
     let mut idle = false;
+    let mut output = String::default();
 
     // Configuration of the afrim.
     let memory = utils::build_map(
@@ -85,6 +85,8 @@ pub fn run(
 
     // We process event.
     for event in event_rx.iter() {
+        let prev_input = preprocessor.get_input();
+
         match event.event_type {
             // Handling of idle state.
             EventType::KeyPress(E_Key::Pause) => {
@@ -105,68 +107,101 @@ pub fn run(
             EventType::KeyRelease(E_Key::ControlLeft | E_Key::ControlRight) => {
                 is_ctrl_released = true;
             }
-            EventType::KeyRelease(E_Key::Backspace) => {
-                is_backspace_pressed = false;
-            }
             _ if idle => (),
             // Handling of special functions.
+            // Select next predicate.
             EventType::KeyRelease(E_Key::ShiftRight) if !is_ctrl_released => {
                 frontend_tx1.send(GUICmd::SelectNextPredicate)?;
             }
+            // Select previous predicate.
             EventType::KeyRelease(E_Key::ShiftLeft) if !is_ctrl_released => {
                 frontend_tx1.send(GUICmd::SelectPreviousPredicate)?;
             }
+            // Commit the selected predicate.
             EventType::KeyRelease(E_Key::Space) if !is_ctrl_released => {
                 rdev::simulate(&EventType::KeyRelease(E_Key::ControlLeft))
                     .expect("We couldn't cancel the special function key");
 
                 frontend_tx1.send(GUICmd::SelectedPredicate)?;
                 if let GUICmd::Predicate(predicate) = frontend_rx2.recv()? {
-                    preprocessor.commit(
-                        predicate
-                            .texts
-                            .first()
-                            .unwrap_or(&String::default())
-                            .to_owned(),
-                    );
+                    rdev::simulate(&EventType::KeyPress(E_Key::Pause)).unwrap();
+                    keyboard
+                        .text(predicate.texts.first().unwrap_or(&String::default()))
+                        .unwrap();
+                    rdev::simulate(&EventType::KeyRelease(E_Key::Pause)).unwrap();
+
+                    preprocessor.process(Default::default());
+                    output.clear();
                     frontend_tx1.send(GUICmd::Clear)?;
                 }
             }
             _ if !is_ctrl_released => (),
+            // Commit the output.
+            EventType::KeyPress(E_Key::Space) if !prev_input.is_empty() => {
+                rdev::simulate(&EventType::KeyRelease(E_Key::Space)).unwrap();
+                rdev::simulate(&EventType::KeyPress(E_Key::Pause)).unwrap();
+
+                // Delete the space.
+                rdev::simulate(&EventType::KeyPress(E_Key::Backspace)).unwrap();
+                rdev::simulate(&EventType::KeyRelease(E_Key::Backspace)).unwrap();
+
+                // Commit
+                keyboard.text(&output).unwrap();
+
+                rdev::simulate(&EventType::KeyRelease(E_Key::Pause)).unwrap();
+
+                preprocessor.process(Default::default());
+                output.clear();
+                frontend_tx1.send(GUICmd::Clear)?;
+            }
             // GUI events.
             EventType::MouseMove { x, y } => {
                 frontend_tx1.send(GUICmd::Position((x, y)))?;
             }
             // Process events.
             _ => {
-                if event.event_type == EventType::KeyPress(E_Key::Backspace) {
-                    is_backspace_pressed = true;
-                }
                 let (changed, _committed) = preprocessor.process(convert::from_event(&event));
+                let curr_input = preprocessor.get_input();
+
+                if prev_input.len() < curr_input.len() {
+                    output.push(curr_input.chars().last().unwrap_or_default());
+
+                    // Cancel the keyboard input.
+                    rdev::simulate(&EventType::KeyPress(E_Key::Pause)).unwrap();
+                    rdev::simulate(&EventType::KeyPress(E_Key::Backspace)).unwrap();
+                    rdev::simulate(&EventType::KeyRelease(E_Key::Backspace)).unwrap();
+                    rdev::simulate(&EventType::KeyRelease(E_Key::Pause)).unwrap();
+                } else if curr_input.is_empty() {
+                    output.clear();
+                }
 
                 if changed {
-                    let input = preprocessor.get_input();
-
                     frontend_tx1.send(GUICmd::Clear)?;
 
                     translator
-                        .translate(&input)
+                        .translate(&curr_input)
                         .into_iter()
                         .take(page_size * 2)
                         .try_for_each(|predicate| -> Result<()> {
                             if predicate.texts.is_empty() {
                             } else if auto_commit && predicate.can_commit {
                                 preprocessor.commit(predicate.texts[0].to_owned());
+
+                                rdev::simulate(&EventType::KeyPress(E_Key::Pause)).unwrap();
+                                keyboard.text(&predicate.texts[0]).unwrap();
+                                rdev::simulate(&EventType::KeyRelease(E_Key::Pause)).unwrap();
                             } else {
                                 frontend_tx1.send(GUICmd::Predicate(predicate))?;
                             }
 
                             Ok(())
                         })?;
-
-                    frontend_tx1.send(GUICmd::InputText(input))?;
-                    frontend_tx1.send(GUICmd::Update)?;
                 }
+
+                // Update frontend.
+                frontend_tx1.send(GUICmd::InputText(curr_input))?;
+                frontend_tx1.send(GUICmd::OutputText(output.clone()))?;
+                frontend_tx1.send(GUICmd::Update)?;
             }
         }
 
@@ -174,18 +209,15 @@ pub fn run(
         while let Some(command) = preprocessor.pop_queue() {
             match command {
                 EventCmd::CommitText(text) => {
-                    keyboard.text(&text).unwrap();
+                    output.push_str(&text);
+                    frontend_tx1.send(GUICmd::OutputText(output.clone()))?;
+                    frontend_tx1.send(GUICmd::Update)?;
                 }
                 EventCmd::Delete(text) => {
-                    let mut step = text.chars().count();
-                    // Prevent an additional backspace.
-                    if is_backspace_pressed {
-                        keyboard.key(Key::Backspace, Direction::Release).unwrap();
-                        is_backspace_pressed = false;
-                        step -= 1;
-                    }
-
-                    (0..step).for_each(|_| keyboard.key(Key::Backspace, Direction::Click).unwrap());
+                    let step = text.chars().count();
+                    (0..(if step > 0 { step } else { 1 })).for_each(|_| {
+                        output.pop();
+                    });
                 }
                 EventCmd::Pause => {
                     rdev::simulate(&EventType::KeyPress(E_Key::Pause)).unwrap();

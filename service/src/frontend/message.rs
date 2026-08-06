@@ -11,6 +11,8 @@ pub enum Command {
     Position((f64, f64)),
     /// Informs about the current input text.
     InputText(String),
+    /// Informs about the current output text.
+    OutputText(String),
     /// Informs about the max numbers of predicate by page.
     PageSize(usize),
     /// Whether the backend is in IDLE.
