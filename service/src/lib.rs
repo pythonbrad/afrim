@@ -218,8 +218,8 @@ pub fn run(
 mod tests {
     use crate::{frontend::Console, run, Config};
     use afrish::{self, TkPackLayout};
-    use rdev::{self, Button, EventType::*, Key::*};
-    use std::sync::mpsc::{self, Sender};
+    use rdev::{self, EventType::*, Key::*};
+    use std::sync::mpsc::{self};
     use std::{thread, time::Duration};
 
     macro_rules! input {
@@ -268,11 +268,7 @@ mod tests {
         input_field
     }
 
-    fn end_sandbox() {
-        afrish::end_wish();
-    }
-
-    fn start_simulation(signal: Sender<()>) {
+    fn start_simulation() {
         let typing_speed_ms = Duration::from_millis(500);
 
         // To detect excessive backspace
@@ -281,15 +277,10 @@ mod tests {
         // Start the sandbox
         let textfield = start_sandbox(LIMIT);
 
-        // Send the ready signal.
-        signal.send(()).unwrap();
-
-        rdev::simulate(&MouseMove { x: 100.0, y: 100.0 }).unwrap();
-        thread::sleep(typing_speed_ms);
-        rdev::simulate(&ButtonPress(Button::Left)).unwrap();
-        thread::sleep(typing_speed_ms);
-        rdev::simulate(&ButtonRelease(Button::Left)).unwrap();
-        thread::sleep(typing_speed_ms);
+        rdev::simulate(&KeyPress(Alt)).unwrap();
+        rdev::simulate(&KeyPress(Tab)).unwrap();
+        rdev::simulate(&KeyRelease(Alt)).unwrap();
+        rdev::simulate(&KeyRelease(Tab)).unwrap();
 
         input!(KeyU, typing_speed_ms);
         input!(Backspace, typing_speed_ms);
@@ -382,8 +373,6 @@ mod tests {
         rdev::simulate(&KeyPress(ShiftLeft)).unwrap();
         input!(Minus, typing_speed_ms);
         rdev::simulate(&KeyRelease(ShiftLeft)).unwrap();
-
-        end_sandbox();
     }
 
     #[test]
@@ -392,16 +381,20 @@ mod tests {
 
         let (tx, rx) = mpsc::channel();
 
-        // TODO: handle simulation errors.
-        let simulation_thread = thread::spawn(move || start_simulation(tx));
+        let afrim_thread = thread::spawn(move || {
+            let test_config = Config::from_file(Path::new("./data/test.toml")).unwrap();
+            // Send the ready signal.
+            tx.send(()).unwrap();
+
+            assert!(run(test_config, Console::default()).is_ok());
+        });
 
         // Wait the ready signal.
         rx.recv().unwrap();
 
-        let test_config = Config::from_file(Path::new("./data/test.toml")).unwrap();
-        assert!(run(test_config, Console::default()).is_ok());
+        start_simulation();
 
-        // Wait the simulation to end properly.
-        simulation_thread.join().unwrap();
+        // Wait the afrim to end properly.
+        afrim_thread.join().unwrap();
     }
 }

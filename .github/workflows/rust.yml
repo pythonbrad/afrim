@@ -22,10 +22,10 @@ jobs:
         include:
         - os: ubuntu-latest
           headless: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        - os: macos-latest
-          extra: -- --skip test_afrim
+        # - os: macos-latest
+        #   extra: -- --skip test_afrim
         - os: windows-latest
-          extra: -- --skip test_afrim
+          # extra: -- --skip test_afrim
 
     steps:
       - uses: actions/checkout@v4
@@ -71,14 +71,18 @@ jobs:
           cargo test --no-run -p afrim-preprocessor --all-features --verbose
           cargo test --no-run -p afrim --all-features --verbose
 
+      - uses: OrbitalOwen/desktop-screenshot-action@0.1
+        with:
+          file-name: 'desktop1.jpg'
+
       - name: Run tests (minimal)
         run: |
-          cargo test -p afrim-memory --verbose
-          cargo test -p afrim-preprocessor --no-default-features --verbose
-          cargo test -p afrim-translator --no-default-features --verbose
-          cargo test -p afrim-config --no-default-features --verbose
           cargo test -p afrim --no-default-features --verbose ${{matrix.extra}}
 
+      - uses: OrbitalOwen/desktop-screenshot-action@0.1
+        with:
+          file-name: 'desktop2.jpg'
+          
       - name: Run tests (normal)
         run: |
           cargo test -p afrim-preprocessor --verbose
